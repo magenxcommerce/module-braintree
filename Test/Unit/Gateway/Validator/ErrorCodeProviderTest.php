@@ -74,9 +74,9 @@ class ErrorCodeProviderTest extends TestCase
                 'errors' => [],
                 'transaction' => [
                     'status' => 'processor_declined',
-                    'processorResponseCode' => '2059'
+                    'processorResponseCode' => '1000'
                 ],
-                'expectedResult' => ['2059']
+                'expectedResult' => ['1000']
             ],
             [
                 'errors' => [
