@@ -3,7 +3,6 @@
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-declare(strict_types=1);
 
 namespace Magento\Braintree\Test\Unit\Controller\Paypal;
 
@@ -17,8 +16,6 @@ use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Quote\Model\Quote;
-use PHPUnit\Framework\MockObject\MockObject;
-use Psr\Log\LoggerInterface;
 
 /**
  * Class PlaceOrderTest
@@ -30,34 +27,34 @@ use Psr\Log\LoggerInterface;
 class PlaceOrderTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @var OrderPlace|MockObject
+     * @var OrderPlace|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $orderPlace;
+    private $orderPlaceMock;
 
     /**
-     * @var Config|MockObject
+     * @var Config|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $config;
+    private $configMock;
 
     /**
-     * @var Session|MockObject
+     * @var Session|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $checkoutSession;
+    private $checkoutSessionMock;
 
     /**
-     * @var RequestInterface|MockObject
+     * @var RequestInterface|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $request;
+    private $requestMock;
 
     /**
-     * @var ResultFactory|MockObject
+     * @var ResultFactory|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $resultFactory;
+    private $resultFactoryMock;
 
     /**
-     * @var ManagerInterface|MockObject
+     * @var ManagerInterface|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $messageManager;
+    protected $messageManagerMock;
 
     /**
      * @var PlaceOrder
@@ -65,143 +62,139 @@ class PlaceOrderTest extends \PHPUnit\Framework\TestCase
     private $placeOrder;
 
     /**
-     * @var MockObject
+     * @var \PHPUnit_Framework_MockObject_MockObject
      */
-    private $logger;
+    private $loggerMock;
 
-    /**
-     * @inheritdoc
-     */
     protected function setUp()
     {
-        /** @var Context|MockObject $context */
-        $context = $this->getMockBuilder(Context::class)
+        /** @var Context|\PHPUnit_Framework_MockObject_MockObject $contextMock */
+        $contextMock = $this->getMockBuilder(Context::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->request = $this->getMockBuilder(RequestInterface::class)
+        $this->requestMock = $this->getMockBuilder(RequestInterface::class)
             ->setMethods(['getPostValue'])
             ->getMockForAbstractClass();
-        $this->resultFactory = $this->getMockBuilder(ResultFactory::class)
+        $this->resultFactoryMock = $this->getMockBuilder(ResultFactory::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->checkoutSession = $this->getMockBuilder(Session::class)
+        $this->checkoutSessionMock = $this->getMockBuilder(Session::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->config = $this->getMockBuilder(Config::class)
+        $this->configMock = $this->getMockBuilder(Config::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->orderPlace = $this->getMockBuilder(OrderPlace::class)
+        $this->orderPlaceMock = $this->getMockBuilder(OrderPlace::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->messageManager = $this->getMockBuilder(ManagerInterface::class)
+        $this->messageManagerMock = $this->getMockBuilder(ManagerInterface::class)
             ->getMockForAbstractClass();
 
-        $context->method('getRequest')
-            ->willReturn($this->request);
-        $context->method('getResultFactory')
-            ->willReturn($this->resultFactory);
-        $context->method('getMessageManager')
-            ->willReturn($this->messageManager);
+        $contextMock->expects(self::once())
+            ->method('getRequest')
+            ->willReturn($this->requestMock);
+        $contextMock->expects(self::once())
+            ->method('getResultFactory')
+            ->willReturn($this->resultFactoryMock);
+        $contextMock->expects(self::once())
+            ->method('getMessageManager')
+            ->willReturn($this->messageManagerMock);
 
-        $this->logger = $this->getMockBuilder(LoggerInterface::class)
+        $this->loggerMock = $this->getMockBuilder(\Psr\Log\LoggerInterface::class)
             ->disableOriginalConstructor()
             ->getMock();
         $this->placeOrder = new PlaceOrder(
-            $context,
-            $this->config,
-            $this->checkoutSession,
-            $this->orderPlace,
-            $this->logger
+            $contextMock,
+            $this->configMock,
+            $this->checkoutSessionMock,
+            $this->orderPlaceMock,
+            $this->loggerMock
         );
     }
 
-    /**
-     * Checks if an order is placed successfully.
-     *
-     * @throws \Magento\Framework\Exception\LocalizedException
-     * @throws \Magento\Framework\Exception\NotFoundException
-     */
     public function testExecute()
     {
         $agreement = ['test-data'];
 
         $quoteMock = $this->getQuoteMock();
-        $quoteMock->method('getItemsCount')
+        $quoteMock->expects(self::once())
+            ->method('getItemsCount')
             ->willReturn(1);
 
         $resultMock = $this->getResultMock();
-        $resultMock->method('setPath')
+        $resultMock->expects(self::once())
+            ->method('setPath')
             ->with('checkout/onepage/success')
             ->willReturnSelf();
 
-        $this->resultFactory->method('create')
+        $this->resultFactoryMock->expects(self::once())
+            ->method('create')
             ->with(ResultFactory::TYPE_REDIRECT)
             ->willReturn($resultMock);
 
-        $this->request->method('getPostValue')
+        $this->requestMock->expects(self::once())
+            ->method('getPostValue')
             ->with('agreement', [])
             ->willReturn($agreement);
 
-        $this->checkoutSession->method('getQuote')
+        $this->checkoutSessionMock->expects(self::once())
+            ->method('getQuote')
             ->willReturn($quoteMock);
 
-        $this->orderPlace->method('execute')
+        $this->orderPlaceMock->expects(self::once())
+            ->method('execute')
             ->with($quoteMock, [0]);
 
-        $this->messageManager->expects(self::never())
+        $this->messageManagerMock->expects(self::never())
             ->method('addExceptionMessage');
 
         self::assertEquals($this->placeOrder->execute(), $resultMock);
     }
 
-    /**
-     * Checks a negative scenario during place order action.
-     *
-     * @throws \Magento\Framework\Exception\LocalizedException
-     * @throws \Magento\Framework\Exception\NotFoundException
-     */
     public function testExecuteException()
     {
         $agreement = ['test-data'];
 
         $quote = $this->getQuoteMock();
-        $quote->method('getItemsCount')
+        $quote->expects(self::once())
+            ->method('getItemsCount')
             ->willReturn(0);
-        $quote->method('getReservedOrderId')
-            ->willReturn('000000111');
 
         $resultMock = $this->getResultMock();
-        $resultMock->method('setPath')
+        $resultMock->expects(self::once())
+            ->method('setPath')
             ->with('checkout/cart')
             ->willReturnSelf();
 
-        $this->resultFactory->method('create')
+        $this->resultFactoryMock->expects(self::once())
+            ->method('create')
             ->with(ResultFactory::TYPE_REDIRECT)
             ->willReturn($resultMock);
 
-        $this->request->method('getPostValue')
+        $this->requestMock->expects(self::once())
+            ->method('getPostValue')
             ->with('agreement', [])
             ->willReturn($agreement);
 
-        $this->checkoutSession->method('getQuote')
+        $this->checkoutSessionMock->expects(self::once())
+            ->method('getQuote')
             ->willReturn($quote);
 
-        $this->orderPlace->expects(self::never())
+        $this->orderPlaceMock->expects(self::never())
             ->method('execute');
 
-        $this->messageManager->method('addExceptionMessage')
+        $this->messageManagerMock->expects(self::once())
+            ->method('addExceptionMessage')
             ->with(
                 self::isInstanceOf('\InvalidArgumentException'),
-                'The order #000000111 cannot be processed.'
+                'Checkout failed to initialize. Verify and try again.'
             );
 
         self::assertEquals($this->placeOrder->execute(), $resultMock);
     }
 
     /**
-     * Gets mock object for a result.
-     *
-     * @return ResultInterface|MockObject
+     * @return ResultInterface|\PHPUnit_Framework_MockObject_MockObject
      */
     private function getResultMock()
     {
@@ -211,9 +204,7 @@ class PlaceOrderTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * Gets mock object for a quote.
-     *
-     * @return Quote|MockObject
+     * @return Quote|\PHPUnit_Framework_MockObject_MockObject
      */
     private function getQuoteMock()
     {

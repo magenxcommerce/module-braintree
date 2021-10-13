@@ -3,23 +3,22 @@
  * Copyright © Magento, Inc. All rights reserved.
  * See COPYING.txt for license details.
  */
-declare(strict_types=1);
-
 namespace Magento\Braintree\Test\Unit\Model\Paypal\Helper;
 
-use Magento\Braintree\Gateway\Config\PayPal\Config;
-use Magento\Braintree\Model\Paypal\Helper\QuoteUpdater;
-use Magento\Braintree\Model\Ui\PayPal\ConfigProvider;
-use Magento\Braintree\Observer\DataAssignObserver;
-use Magento\Quote\Api\CartRepositoryInterface;
-use Magento\Quote\Api\Data\CartExtensionInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address;
 use Magento\Quote\Model\Quote\Payment;
-use PHPUnit_Framework_MockObject_MockObject as MockObject;
+use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Braintree\Model\Ui\PayPal\ConfigProvider;
+use Magento\Braintree\Observer\DataAssignObserver;
+use Magento\Braintree\Gateway\Config\PayPal\Config;
+use Magento\Braintree\Model\Paypal\Helper\QuoteUpdater;
+use Magento\Quote\Api\Data\CartExtensionInterface;
 
 /**
  * Class QuoteUpdaterTest
+ *
+ * @see \Magento\Braintree\Model\Paypal\Helper\QuoteUpdater
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
@@ -28,24 +27,24 @@ class QuoteUpdaterTest extends \PHPUnit\Framework\TestCase
     const TEST_NONCE = '3ede7045-2aea-463e-9754-cd658ffeeb48';
 
     /**
-     * @var Config|MockObject
+     * @var Config|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $config;
+    private $configMock;
 
     /**
-     * @var CartRepositoryInterface|MockObject
+     * @var CartRepositoryInterface|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $quoteRepository;
+    private $quoteRepositoryMock;
 
     /**
-     * @var Address|MockObject
+     * @var Address|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $billingAddress;
+    private $billingAddressMock;
 
     /**
-     * @var Address|MockObject
+     * @var Address|\PHPUnit_Framework_MockObject_MockObject
      */
-    private $shippingAddress;
+    private $shippingAddressMock;
 
     /**
      * @var QuoteUpdater
@@ -53,17 +52,17 @@ class QuoteUpdaterTest extends \PHPUnit\Framework\TestCase
     private $quoteUpdater;
 
     /**
-     * @inheritdoc
+     * @return void
      */
     protected function setUp()
     {
-        $this->config = $this->getMockBuilder(Config::class)
+        $this->configMock = $this->getMockBuilder(Config::class)
             ->disableOriginalConstructor()
             ->getMock();
-        $this->quoteRepository = $this->getMockBuilder(CartRepositoryInterface::class)
+        $this->quoteRepositoryMock = $this->getMockBuilder(CartRepositoryInterface::class)
             ->getMockForAbstractClass();
 
-        $this->billingAddress = $this->getMockBuilder(Address::class)
+        $this->billingAddressMock = $this->getMockBuilder(Address::class)
             ->setMethods(
                 [
                     'setLastname',
@@ -78,10 +77,9 @@ class QuoteUpdaterTest extends \PHPUnit\Framework\TestCase
                     'setShouldIgnoreValidation',
                     'getEmail'
                 ]
-            )
-            ->disableOriginalConstructor()
+            )->disableOriginalConstructor()
             ->getMock();
-        $this->shippingAddress = $this->getMockBuilder(Address::class)
+        $this->shippingAddressMock = $this->getMockBuilder(Address::class)
             ->setMethods(
                 [
                     'setLastname',
@@ -95,61 +93,61 @@ class QuoteUpdaterTest extends \PHPUnit\Framework\TestCase
                     'setPostcode',
                     'setShouldIgnoreValidation'
                 ]
-            )
-            ->disableOriginalConstructor()
+            )->disableOriginalConstructor()
             ->getMock();
 
         $this->quoteUpdater = new QuoteUpdater(
-            $this->config,
-            $this->quoteRepository
+            $this->configMock,
+            $this->quoteRepositoryMock
         );
     }
 
     /**
-     * Checks if quote details can be update by the response from Braintree.
-     *
+     * @return void
      * @throws \Magento\Framework\Exception\LocalizedException
      */
-    public function testExecute(): void
+    public function testExecute()
     {
         $details = $this->getDetails();
-        $quote = $this->getQuoteMock();
-        $payment = $this->getPaymentMock();
+        $quoteMock = $this->getQuoteMock();
+        $paymentMock = $this->getPaymentMock();
 
-        $quote->method('getPayment')
-            ->willReturn($payment);
+        $quoteMock->expects(self::once())
+            ->method('getPayment')
+            ->willReturn($paymentMock);
 
-        $payment->method('setMethod')
+        $paymentMock->expects(self::once())
+            ->method('setMethod')
             ->with(ConfigProvider::PAYPAL_CODE);
-        $payment->method('setAdditionalInformation')
+        $paymentMock->expects(self::once())
+            ->method('setAdditionalInformation')
             ->with(DataAssignObserver::PAYMENT_METHOD_NONCE, self::TEST_NONCE);
 
-        $this->updateQuoteStep($quote, $details);
+        $this->updateQuoteStep($quoteMock, $details);
 
-        $this->quoteUpdater->execute(self::TEST_NONCE, $details, $quote);
+        $this->quoteUpdater->execute(self::TEST_NONCE, $details, $quoteMock);
     }
 
     /**
-     * Disables quote's addresses validation.
-     *
      * @return void
      */
-    private function disabledQuoteAddressValidationStep(): void
+    private function disabledQuoteAddressValidationStep()
     {
-        $this->billingAddress->method('setShouldIgnoreValidation')
+        $this->billingAddressMock->expects(self::once())
+            ->method('setShouldIgnoreValidation')
             ->with(true);
-        $this->shippingAddress->method('setShouldIgnoreValidation')
+        $this->shippingAddressMock->expects(self::once())
+            ->method('setShouldIgnoreValidation')
             ->with(true);
-        $this->billingAddress->method('getEmail')
+        $this->billingAddressMock->expects(self::once())
+            ->method('getEmail')
             ->willReturn('bt_buyer_us@paypal.com');
     }
 
     /**
-     * Gets quote's details.
-     *
      * @return array
      */
-    private function getDetails(): array
+    private function getDetails()
     {
         return [
             'email' => 'bt_buyer_us@paypal.com',
@@ -159,71 +157,74 @@ class QuoteUpdaterTest extends \PHPUnit\Framework\TestCase
             'phone' => '312-123-4567',
             'countryCode' => 'US',
             'shippingAddress' => [
-                'line1' => '123 Division Street',
-                'line2' => 'Apt. #1',
-                'city' => 'Chicago',
-                'state' => 'IL',
+                'streetAddress' => '123 Division Street',
+                'extendedAddress' => 'Apt. #1',
+                'locality' => 'Chicago',
+                'region' => 'IL',
                 'postalCode' => '60618',
-                'countryCode' => 'US',
-                'recipientName' => 'Jane Smith',
+                'countryCodeAlpha2' => 'US',
+                'recipientName' => 'John Doe',
             ],
             'billingAddress' => [
-                'line1' => '123 Billing Street',
-                'line2' => 'Apt. #1',
-                'city' => 'Chicago',
-                'state' => 'IL',
+                'streetAddress' => '123 Billing Street',
+                'extendedAddress' => 'Apt. #1',
+                'locality' => 'Chicago',
+                'region' => 'IL',
                 'postalCode' => '60618',
-                'countryCode' => 'US',
+                'countryCodeAlpha2' => 'US',
             ],
         ];
     }
 
     /**
-     * Updates shipping address details.
-     *
      * @param array $details
      */
-    private function updateShippingAddressStep(array $details): void
+    private function updateShippingAddressStep(array $details)
     {
-        $this->shippingAddress->method('setLastname')
-            ->with('Smith');
-        $this->shippingAddress->method('setFirstname')
-            ->with('Jane');
-        $this->shippingAddress->method('setEmail')
+        $this->shippingAddressMock->expects(self::once())
+            ->method('setLastname')
+            ->with($details['lastName']);
+        $this->shippingAddressMock->expects(self::once())
+            ->method('setFirstname')
+            ->with($details['firstName']);
+        $this->shippingAddressMock->expects(self::once())
+            ->method('setEmail')
             ->with($details['email']);
-        $this->shippingAddress->method('setCollectShippingRates')
+        $this->shippingAddressMock->expects(self::once())
+            ->method('setCollectShippingRates')
             ->with(true);
 
-        $this->updateAddressDataStep($this->shippingAddress, $details['shippingAddress']);
+        $this->updateAddressDataStep($this->shippingAddressMock, $details['shippingAddress']);
     }
 
     /**
-     * Updates address details.
-     *
-     * @param MockObject $address
+     * @param \PHPUnit_Framework_MockObject_MockObject $addressMock
      * @param array $addressData
      */
-    private function updateAddressDataStep(MockObject $address, array $addressData): void
+    private function updateAddressDataStep(\PHPUnit_Framework_MockObject_MockObject $addressMock, array $addressData)
     {
-        $address->method('setStreet')
-            ->with([$addressData['line1'], $addressData['line2']]);
-        $address->method('setCity')
-            ->with($addressData['city']);
-        $address->method('setRegionCode')
-            ->with($addressData['state']);
-        $address->method('setCountryId')
-            ->with($addressData['countryCode']);
-        $address->method('setPostcode')
+        $addressMock->expects(self::once())
+            ->method('setStreet')
+            ->with([$addressData['streetAddress'], $addressData['extendedAddress']]);
+        $addressMock->expects(self::once())
+            ->method('setCity')
+            ->with($addressData['locality']);
+        $addressMock->expects(self::once())
+            ->method('setRegionCode')
+            ->with($addressData['region']);
+        $addressMock->expects(self::once())
+            ->method('setCountryId')
+            ->with($addressData['countryCodeAlpha2']);
+        $addressMock->expects(self::once())
+            ->method('setPostcode')
             ->with($addressData['postalCode']);
     }
 
     /**
-     * Updates quote's address details.
-     *
-     * @param MockObject $quoteMock
+     * @param \PHPUnit_Framework_MockObject_MockObject $quoteMock
      * @param array $details
      */
-    private function updateQuoteAddressStep(MockObject $quoteMock, array $details): void
+    private function updateQuoteAddressStep(\PHPUnit_Framework_MockObject_MockObject $quoteMock, array $details)
     {
         $quoteMock->expects(self::exactly(2))
             ->method('getIsVirtual')
@@ -234,61 +235,64 @@ class QuoteUpdaterTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * Updates billing address details.
-     *
      * @param array $details
      */
-    private function updateBillingAddressStep(array $details): void
+    private function updateBillingAddressStep(array $details)
     {
-        $this->config->method('isRequiredBillingAddress')
+        $this->configMock->expects(self::once())
+            ->method('isRequiredBillingAddress')
             ->willReturn(true);
 
-        $this->updateAddressDataStep($this->billingAddress, $details['billingAddress']);
+        $this->updateAddressDataStep($this->billingAddressMock, $details['billingAddress']);
 
-        $this->billingAddress->method('setLastname')
+        $this->billingAddressMock->expects(self::once())
+            ->method('setLastname')
             ->with($details['lastName']);
-        $this->billingAddress->method('setFirstname')
+        $this->billingAddressMock->expects(self::once())
+            ->method('setFirstname')
             ->with($details['firstName']);
-        $this->billingAddress->method('setEmail')
+        $this->billingAddressMock->expects(self::once())
+            ->method('setEmail')
             ->with($details['email']);
     }
 
     /**
-     * Updates quote details.
-     *
-     * @param MockObject $quote
+     * @param \PHPUnit_Framework_MockObject_MockObject $quoteMock
      * @param array $details
      */
-    private function updateQuoteStep(MockObject $quote, array $details): void
+    private function updateQuoteStep(\PHPUnit_Framework_MockObject_MockObject $quoteMock, array $details)
     {
-        $quote->method('setMayEditShippingAddress')
+        $quoteMock->expects(self::once())
+            ->method('setMayEditShippingAddress')
             ->with(false);
-        $quote->method('setMayEditShippingMethod')
+        $quoteMock->expects(self::once())
+            ->method('setMayEditShippingMethod')
             ->with(true);
 
-        $quote->method('getShippingAddress')
-            ->willReturn($this->shippingAddress);
-        $quote->expects(self::exactly(2))
+        $quoteMock->expects(self::exactly(2))
+            ->method('getShippingAddress')
+            ->willReturn($this->shippingAddressMock);
+        $quoteMock->expects(self::exactly(2))
             ->method('getBillingAddress')
-            ->willReturn($this->billingAddress);
+            ->willReturn($this->billingAddressMock);
 
-        $this->updateQuoteAddressStep($quote, $details);
+        $this->updateQuoteAddressStep($quoteMock, $details);
         $this->disabledQuoteAddressValidationStep();
 
-        $quote->method('collectTotals');
+        $quoteMock->expects(self::once())
+            ->method('collectTotals');
 
-        $this->quoteRepository->method('save')
-            ->with($quote);
+        $this->quoteRepositoryMock->expects(self::once())
+            ->method('save')
+            ->with($quoteMock);
     }
 
     /**
-     * Creates a mock for Quote object.
-     *
-     * @return Quote|MockObject
+     * @return Quote|\PHPUnit_Framework_MockObject_MockObject
      */
-    private function getQuoteMock(): MockObject
+    private function getQuoteMock()
     {
-        $quote = $this->getMockBuilder(Quote::class)
+        $quoteMock = $this->getMockBuilder(Quote::class)
             ->setMethods(
                 [
                     'getIsVirtual',
@@ -300,27 +304,25 @@ class QuoteUpdaterTest extends \PHPUnit\Framework\TestCase
                     'getBillingAddress',
                     'getExtensionAttributes'
                 ]
-            )
-            ->disableOriginalConstructor()
+            )->disableOriginalConstructor()
             ->getMock();
 
-        $cartExtension = $this->getMockBuilder(CartExtensionInterface::class)
+        $cartExtensionMock = $this->getMockBuilder(CartExtensionInterface::class)
             ->setMethods(['setShippingAssignments'])
             ->disableOriginalConstructor()
             ->getMockForAbstractClass();
 
-        $quote->method('getExtensionAttributes')
-            ->willReturn($cartExtension);
+        $quoteMock->expects(self::any())
+            ->method('getExtensionAttributes')
+            ->willReturn($cartExtensionMock);
 
-        return $quote;
+        return $quoteMock;
     }
 
     /**
-     * Creates a mock for Payment object.
-     *
-     * @return Payment|MockObject
+     * @return Payment|\PHPUnit_Framework_MockObject_MockObject
      */
-    private function getPaymentMock(): MockObject
+    private function getPaymentMock()
     {
         return $this->getMockBuilder(Payment::class)
             ->disableOriginalConstructor()
