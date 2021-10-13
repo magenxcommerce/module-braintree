@@ -72,9 +72,7 @@ class OrderCancellation
             ];
             if (in_array($payment->getMethod(), $paymentCodes)) {
                 $incrementId = $quote->getReservedOrderId();
-                if ($incrementId) {
-                    $this->orderCancellationService->execute($incrementId);
-                }
+                $this->orderCancellationService->execute($incrementId);
             }
 
             throw $e;

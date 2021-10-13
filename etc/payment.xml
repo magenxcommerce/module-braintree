@@ -8,16 +8,8 @@
 <payment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Payment:etc/payment.xsd">
     <groups>
-        <group id="braintree_group">
+        <group id="braintree">
             <label>Braintree</label>
         </group>
     </groups>
-    <methods>
-        <method name="braintree">
-            <allow_multiple_address>1</allow_multiple_address>
-        </method>
-        <method name="braintree_paypal">
-            <allow_multiple_address>1</allow_multiple_address>
-        </method>
-    </methods>
 </payment>
